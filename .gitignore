@@ -1,0 +1,8 @@
+.venv/
+dados/
+__pycache__/
+*.pyc
+dataset/rawg_imagens.csv
+web/dados/
+web/dataset/
+catalogo_inicial.db

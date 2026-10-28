@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo de Jogos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="conteudo">
+    <section class="hero">
+      <h1>Catálogo de jogos</h1>
+      <p class="sub">Pesquise e salve seus jogos favoritos em um perfil. Cada plataforma é uma categoria.
+        Dados de várias fontes abertas — <a href="sobre.html">veja quais</a>.</p>
+      <div class="numeros" id="numeros"></div>
+      <div class="marcas" id="marcas" role="group" aria-label="Filtrar por marca">
+        <button class="marca ativa" data-familia="">Todas</button>
+        <button class="marca" data-familia="PlayStation" style="--cor:#2f6fe4"></button>
+        <button class="marca" data-familia="Xbox" style="--cor:#2a9d4b"></button>
+        <button class="marca" data-familia="Nintendo" style="--cor:#e4352f"></button>
+      </div>
+    </section>
+
+    <div class="barra-perfil">
+      <label for="perfil"><b>👤 Perfil:</b></label>
+      <select id="perfil"></select>
+      <button id="novo-perfil" class="principal">+ Novo perfil</button>
+      <button id="renomear-perfil">Renomear</button>
+      <button id="excluir-perfil" class="perigo">Excluir perfil</button>
+      <span class="grow"></span>
+      <button id="novo-jogo">+ Cadastrar jogo</button>
+    </div>
+
+    <div class="abas">
+      <button id="aba-busca" class="ativa">🔎 Pesquisar jogos</button>
+      <button id="aba-salvos">⭐ Jogos salvos (<span id="qtd-salvos">0</span>)</button>
+    </div>
+
+    <section id="vista-busca">
+      <form id="filtros" class="filtros">
+        <input id="q" type="search" placeholder="Digite o nome do jogo...">
+        <select id="familia" hidden>
+          <option value="">Todas as marcas</option>
+          <option>PlayStation</option><option>Xbox</option><option>Nintendo</option>
+        </select>
+        <select id="categoria" aria-label="Plataforma"><option value="">Todas as plataformas</option></select>
+        <select id="genero" aria-label="Gênero"><option value="">Todos os gêneros</option></select>
+        <input id="ano" type="number" min="1970" max="2100" placeholder="Ano" aria-label="Ano de lançamento">
+        <select id="ordem" aria-label="Ordenar por">
+          <option value="destaques">⭐ Destaques</option><option value="nome">Ordem A–Z</option>
+          <option value="ano">Mais recentes</option><option value="nota">Melhor nota</option>
+        </select>
+        <label class="check"><input id="so-imagem" type="checkbox"> Só com capa</label>
+        <button type="button" id="limpar" class="pequeno">Limpar filtros</button>
+      </form>
+      <p id="info" class="info"></p>
+      <div id="resultados" class="grade"></div>
+      <div class="paginacao">
+        <button id="anterior">← Anterior</button>
+        <span id="rotulo-pagina"></span>
+        <button id="proxima">Próxima →</button>
+      </div>
+    </section>
+
+    <section id="vista-salvos" hidden>
+      <p id="info-salvos" class="info"></p>
+      <div id="salvos" class="grade"></div>
+    </section>
+  </main>
+
+  <dialog id="detalhe"></dialog>
+  <dialog id="cadastro"></dialog>
+  <script src="estatico.js"></script>
+  <script src="comum.js"></script>
+  <script src="catalogo.js"></script>
+</body>
+</html>

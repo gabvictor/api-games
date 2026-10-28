@@ -1,0 +1,7 @@
+.venv/
+dados/
+catalogo_inicial.db
+__pycache__/
+*.pyc
+dataset/rawg_imagens.csv
+ferramentas/

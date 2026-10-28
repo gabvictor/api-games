@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sobre e fontes dos dados</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="conteudo texto">
+    <h1>Sobre o projeto e fontes dos dados</h1>
+    <p class="sub">Tudo o que foi usado neste trabalho, de onde veio e como foi tratado — para conferência.</p>
+
+    <div class="caixa">
+      <h3>👥 Equipe e conceito</h3>
+      <p><b>Equipe:</b> Gabriel Victor, Matheus Salomão e Lucas Lima.</p>
+      <p><b>Conceito:</b> catálogo de jogos de diversas plataformas, separados por categoria (cada plataforma — PS1, PS2, Xbox 360, Switch etc. — é uma categoria).
+        Cada pessoa pode criar um <b>perfil</b> e salvar ou excluir os jogos que quer.</p>
+      <p><b>Linguagem:</b> Python (Flask) · <b>Banco:</b> SQLite · <b>Site:</b> HTML, CSS e JavaScript · <b>Empacotamento:</b> Docker.</p>
+    </div>
+
+    <h2>📦 Números do catálogo (consultados agora na API)</h2>
+    <div class="estatisticas" id="numeros"></div>
+
+    <h2>📚 De onde vieram os dados</h2>
+    <div class="caixa" id="fonte"><p>Carregando…</p></div>
+
+    <h2>🧩 Outras fontes juntadas ao catálogo</h2>
+    <p class="sub">Além do IGDB, o <code>consolidar.py</code> une estas bases. Em cada jogo, o campo “fontes” mostra de onde vieram os dados dele.</p>
+    <div id="fontes-extras"></div>
+
+    <h2>⬇️ Arquivos do dataset baixados</h2>
+    <p class="sub">Arquivos originais (CSV), sem alteração, guardados na pasta <code>dataset/</code> do projeto. Pode baixar e conferir.</p>
+    <div class="tabela-rolagem"><table>
+      <thead><tr><th>Arquivo</th><th>O que contém</th><th>Tamanho</th><th>Caminho no projeto</th></tr></thead>
+      <tbody id="arquivos"></tbody>
+    </table></div>
+
+    <h2>⚙️ Como os dados foram tratados</h2>
+    <div class="caixa">
+      <ol>
+        <li><b>Download:</b> os 5 primeiros arquivos da tabela foram baixados do Zenodo (repositório científico). Não usamos o arquivo de capturas de tela (2,8 GB).</li>
+        <li><b>Filtro:</b> o script <code>etl.py</code> mantém apenas as plataformas pedidas: PlayStation 1 a 5 (mais PSP e Vita), Xbox (original, 360, One, Series X|S) e todos os consoles Nintendo.</li>
+        <li><b>Limpeza:</b> remove jogos repetidos, converte as datas (do formato Unix para AAAA-MM-DD), troca valores “Missing”/“nan” por vazio e traduz os nomes dos gêneros para português.</li>
+        <li><b>Imagens:</b> <code>ferramentas/baixar_capas.py</code> baixa só nome, ano e URL da imagem do dataset RAWG (leitura parcial de um arquivo de 1 GB) e
+          <code>ferramentas/casar_capas.py</code> liga cada jogo do catálogo à imagem pelo nome e ano, gerando <code>dataset/capas.csv</code>. Cerca de metade dos jogos ganhou imagem.</li>
+        <li><b>Banco:</b> grava tudo em um banco SQLite (<code>catalogo_inicial.db</code>), que é o que a API consulta — por isso funciona 100% offline.</li>
+      </ol>
+      <p><b>Tabelas:</b> <code>jogos</code>, <code>categorias</code>, <code>generos</code>, <code>jogo_categoria</code>, <code>jogo_genero</code>, <code>perfis</code>, <code>perfil_jogos</code>.</p>
+    </div>
+
+    <h2>🖼️ Imagens e ícones dos jogos</h2>
+    <div class="caixa" id="fonte-imagens"></div>
+    <div class="caixa">
+      <p><b>Ícones:</b> o dataset do IGDB <b>não inclui imagens de capa</b>. Por isso cada jogo tem uma “capa” gerada pelo próprio site:
+        a cor e o ícone da marca (PlayStation, Xbox, Nintendo) e um emoji do gênero. Ela aparece quando o jogo não tem imagem ou quando não há internet.
+        Os ícones das marcas são desenhos simples feitos para este trabalho, não os logotipos oficiais.</p>
+    </div>
+
+    <h2>⚠️ Limitações</h2>
+    <div class="caixa">
+      <ul>
+        <li>O IGDB é uma base colaborativa: consoles muito antigos têm poucos jogos cadastrados (ex.: Game Boy) e alguns nem aparecem (Virtual Boy).</li>
+        <li>Alguns jogos não têm descrição, nota ou ano — nesses casos o site mostra “—” ou “desconhecido”.</li>
+        <li>As descrições dos jogos estão em inglês, como no dataset original.</li>
+        <li>O dataset foi coletado em 2023/2024; lançamentos posteriores não aparecem.</li>
+      </ul>
+    </div>
+
+    <h2>🗂️ Estrutura do projeto</h2>
+    <pre>dataset/            CSVs originais baixados (fonte dos dados)
+etl.py              Script que converte os CSVs em banco SQLite
+catalogo_inicial.db Banco de dados gerado pelo etl.py
+app.py              API Flask (endpoints /cat, /perf ...)
+web/                Este site (index.html, api.html, sobre.html, JS e CSS)
+tests/test_api.py   Testes automáticos dos endpoints
+Dockerfile, docker-compose.yml   Execução em container
+README.md           Documentação completa</pre>
+  </main>
+
+  <script src="estatico.js"></script>
+  <script src="comum.js"></script>
+  <script>
+    montarLayout("sobre");
+    const tamanho = (b) => (b == null ? "—" : b > 1e6 ? (b / 1e6).toFixed(1) + " MB" : (b / 1e3).toFixed(1) + " kB");
+    (async () => {
+      const [f, e] = await Promise.all([api("/fontes"), api("/estatisticas")]);
+      document.getElementById("numeros").innerHTML = [
+        [e.total_jogos.toLocaleString("pt-BR"), "jogos"], [e.total_categorias, "categorias (plataformas)"],
+        ...Object.entries(e.por_familia).map(([k, v]) => [v.toLocaleString("pt-BR"), "jogos de " + k]),
+      ].map(([n, t]) => `<div><b>${n}</b><span>${t}</span></div>`).join("");
+      document.getElementById("fonte").innerHTML = `
+        <p><b>Dataset:</b> ${esc(f.nome)}</p><p>${esc(f.descricao)}</p>
+        <p><b>Autores:</b> ${esc(f.autores)}</p><p><b>Publicação:</b> ${esc(f.publicacao)}</p>
+        <p><b>Licença:</b> <a href="${f.licenca_url}" target="_blank" rel="noopener">${esc(f.licenca)}</a> — permite usar e redistribuir desde que se dê o crédito aos autores (feito aqui).</p>
+        <p><b>Links:</b> <a href="${f.pagina_dataset}" target="_blank" rel="noopener">página do dataset (Zenodo)</a> ·
+          <a href="${f.artigo}" target="_blank" rel="noopener">artigo científico (arXiv)</a> ·
+          <a href="${f.origem_original}" target="_blank" rel="noopener">IGDB (origem original das informações)</a></p>`;
+      document.getElementById("fontes-extras").innerHTML = f.fontes_extras.map((x) => `
+        <div class="caixa"><h3><a href="${x.pagina}" target="_blank" rel="noopener">${esc(x.nome)}</a></h3>
+          <p><b>Para quê:</b> ${esc(x.uso)}</p><p><b>Licença:</b> ${esc(x.licenca)}</p>
+          <p><b>Arquivo no projeto:</b> <code>dataset/${esc(x.arquivo)}</code> · <b>Como foi obtido:</b> ${esc(x.como)}</p></div>`).join("");
+      const im = f.fonte_imagens;
+      document.getElementById("fonte-imagens").innerHTML = `
+        <p><b>Imagens dos jogos:</b> ${esc(im.nome)}</p><p>${esc(im.descricao)}</p>
+        <p><b>Autor:</b> ${esc(im.autor)} · <b>Licença:</b> ${esc(im.licenca)}</p>
+        <p><b>Links:</b> <a href="${im.pagina}" target="_blank" rel="noopener">página do dataset (Hugging Face)</a> ·
+          <a href="${im.origem_original}" target="_blank" rel="noopener">RAWG (origem das imagens)</a></p>
+        <p><b>Importante:</b> ${esc(im.observacao)}</p>`;
+      document.getElementById("arquivos").innerHTML = f.arquivos_usados.map((a) => `<tr>
+        <td><a href="${a.download}">${esc(a.arquivo)}</a></td><td>${esc(a.conteudo)}</td>
+        <td>${tamanho(a.tamanho_bytes)}</td><td><code>dataset/${esc(a.arquivo)}</code></td></tr>`).join("");
+    })();
+  </script>
+</body>
+</html>

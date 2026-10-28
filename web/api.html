@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentação da API</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="conteudo">
+    <h1>Documentação da API</h1>
+    <p class="sub">API REST em Python (Flask) do <b>Catálogo de Jogos</b>: jogos de várias plataformas separados por categoria, com perfis para salvar favoritos.
+      Tudo em JSON; erros vêm como <code>{"erro": "mensagem"}</code>. Abra qualquer endpoint abaixo e use <b>Testar</b> para chamar a API de verdade.</p>
+
+    <div class="api-topo">
+      <div class="caixa">
+        <h3>🌐 Endereço base</h3>
+        <div class="base-url"><code id="base"></code><button class="pequeno" id="copiar-base">Copiar</button></div>
+        <p class="meta">Sem autenticação e sem prefixo (<code>/cat/...</code>, <code>/perf/...</code>).</p>
+      </div>
+      <div class="caixa">
+        <h3>🧭 Como a API está organizada</h3>
+        <p class="meta"><b>/cat</b> = categorias (plataformas) e seus <b>jogos</b> · <b>/perf</b> = perfis e jogos salvos.
+          Um jogo pode estar em várias categorias.</p>
+      </div>
+      <div class="caixa">
+        <h3>📋 Códigos de resposta</h3>
+        <div class="codigos-lista">
+          <div><span class="cod c2">200</span> OK</div><div><span class="cod c2">201</span> criado (cabeçalho <code>Location</code>)</div>
+          <div><span class="cod c2">204</span> excluído, sem corpo</div>
+          <div><span class="cod c4">400</span> dados inválidos · <span class="cod c4">404</span> não encontrado</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grupos" id="grupos" role="tablist"></div>
+    <div id="endpoints"></div>
+
+    <h2>Modelo de um jogo</h2>
+    <pre id="modelo"></pre>
+  </main>
+
+  <script src="estatico.js"></script>
+  <script src="comum.js"></script>
+  <script>
+    montarLayout("api");
+    const BASE = new URL(".", location.href).href.replace(/\/$/, "");
+    document.getElementById("base").textContent = BASE;
+    document.getElementById("copiar-base").onclick = (e) => { navigator.clipboard?.writeText(BASE); e.target.textContent = "Copiado ✓"; setTimeout(() => (e.target.textContent = "Copiar"), 1500); };
+
+    // ---------- Descrição dos endpoints ----------
+    const JOGO = '{\n  "nome": "Meu Jogo",\n  "categorias": [7, 8],\n  "generos": [31],\n  "data_lancamento": "2001-05-20",\n  "resumo": "Descrição opcional"\n}';
+    const EP = [
+      // grupo, método, caminho, resumo, params, corpo, respostas, extra?, exemplos de path, query padrão
+      { g: "Jogos", m: "GET", c: "/cat/jogos", r: "Lista os jogos (paginado, com busca e filtros)", q: "q=zelda&por_pagina=3",
+        params: [["q", "query", "texto", "Parte do nome (ignora acentos e maiúsculas)"], ["categoria", "query", "id", "Id da plataforma (veja GET /cat)"],
+          ["familia", "query", "texto", "PlayStation, Xbox ou Nintendo"], ["genero", "query", "id", "Id do gênero (veja GET /generos)"], ["ano", "query", "número", "Ano de lançamento"],
+          ["ordem", "query", "texto", "destaques, nome, ano ou nota"], ["com_imagem", "query", "0/1", "1 = só jogos com capa"],
+          ["pagina", "query", "número", "Padrão 1"], ["por_pagina", "query", "número", "Padrão 24, máximo 100"]],
+        resp: [[200, "Objeto com pagina, por_pagina, total e resultados (lista de jogos)"], [400, "pagina/por_pagina inválidos"]] },
+      { g: "Jogos", m: "GET", c: "/cat/jogos/{id}", r: "Mostra um jogo completo (com vídeos do YouTube, quando houver)", ex: { id: 7346 },
+        params: [["id", "caminho", "número", "Id do jogo"]], resp: [[200, "O jogo"], [404, "Jogo não encontrado"]] },
+      { g: "Jogos", m: "POST", c: "/cat/jogos", r: "Cadastra um jogo novo", corpo: JOGO,
+        params: [["nome", "corpo", "texto *", "Obrigatório, até 120 caracteres"], ["categorias", "corpo", "lista de ids *", "Obrigatório, ao menos uma"], ["generos", "corpo", "lista de ids", "Opcional"],
+          ["data_lancamento", "corpo", "AAAA-MM-DD", "Opcional"], ["resumo", "corpo", "texto", "Opcional"]],
+        resp: [[201, "Jogo criado (com Location)"], [400, "Campo faltando/inválido ou id de categoria inexistente"]] },
+      { g: "Jogos", m: "PUT", c: "/cat/jogos/{id}", r: "Atualiza um jogo (só envie os campos que mudam)", ex: { id: 10000001 }, corpo: '{\n  "nome": "Novo nome",\n  "ano": 2001\n}',
+        params: [["id", "caminho", "número", "Id do jogo"], ["nome, ano, nota, resumo, categorias, generos…", "corpo", "—", "Mesmos campos do cadastro, todos opcionais"]],
+        resp: [[200, "Jogo atualizado"], [400, "Dados inválidos"], [404, "Jogo não encontrado"]] },
+      { g: "Jogos", m: "DELETE", c: "/cat/jogos/{id}", r: "Apaga um jogo (e tira dos perfis)", ex: { id: 999999999 },
+        params: [["id", "caminho", "número", "Id do jogo"]], resp: [[204, "Excluído"], [404, "Jogo não encontrado"]] },
+
+      { g: "Categorias", m: "GET", c: "/cat/{id}", r: "Mostra uma categoria (plataforma) com o total de jogos", ex: { id: 167 },
+        params: [["id", "caminho", "número", "Id da categoria (ex.: 167 = PlayStation 5)"]], resp: [[200, "A categoria"], [404, "Categoria não encontrada"]] },
+      { g: "Categorias", m: "POST", c: "/cat/{id}", r: "Cadastra uma categoria (o id vai na URL)", ex: { id: 900 }, corpo: '{\n  "nome": "Dreamcast",\n  "familia": "Outras"\n}',
+        params: [["id", "caminho", "número", "Id da nova categoria"], ["nome", "corpo", "texto *", "Obrigatório"], ["familia", "corpo", "texto", "Marca (opcional)"]],
+        resp: [[201, "Categoria criada"], [400, "Nome faltando ou id já existente"]] },
+      { g: "Categorias", m: "DELETE", c: "/cat/{id}", r: "Apaga uma categoria (os jogos permanecem)", ex: { id: 900 },
+        params: [["id", "caminho", "número", "Id da categoria"]], resp: [[204, "Excluída"], [404, "Categoria não encontrada"]] },
+      { g: "Categorias", m: "GET", c: "/cat", r: "Lista todas as categorias", extra: true, resp: [[200, "Lista de categorias com total_jogos"]] },
+
+      { g: "Perfis", m: "GET", c: "/perf/{id}", r: "Mostra um perfil com os jogos salvos", ex: { id: 1 },
+        params: [["id", "caminho", "número", "Id do perfil"]], resp: [[200, "O perfil e sua lista de jogos"], [404, "Perfil não encontrado"]] },
+      { g: "Perfis", m: "POST", c: "/perf", r: "Cadastra um perfil", corpo: '{\n  "nome": "Ana"\n}',
+        params: [["nome", "corpo", "texto *", "Obrigatório, até 40 caracteres, único"]], resp: [[201, "Perfil criado"], [400, "Nome faltando ou já existente"]] },
+      { g: "Perfis", m: "PUT", c: "/perf/{id}", r: "Atualiza um perfil: renomeia e/ou troca a lista de jogos salvos", ex: { id: 1 }, corpo: '{\n  "nome": "Ana Clara",\n  "jogos": [7346]\n}',
+        params: [["id", "caminho", "número", "Id do perfil"], ["nome", "corpo", "texto", "Novo nome"], ["jogos", "corpo", "lista de ids", "Substitui os jogos salvos (é assim que se salva/remove)"]],
+        resp: [[200, "Perfil atualizado"], [400, "Dados inválidos ou ids inexistentes"], [404, "Perfil não encontrado"]] },
+      { g: "Perfis", m: "DELETE", c: "/perf/{id}", r: "Apaga um perfil e seus jogos salvos", ex: { id: 999999 },
+        params: [["id", "caminho", "número", "Id do perfil"]], resp: [[204, "Excluído"], [404, "Perfil não encontrado"]] },
+      { g: "Perfis", m: "GET", c: "/perf", r: "Lista os perfis", extra: true, resp: [[200, "Lista de perfis"]] },
+      { g: "Perfis", m: "PUT", c: "/perf/{id}/jogos/{jogoId}", r: "Atalho: salva um jogo no perfil", extra: true, ex: { id: 1, jogoId: 7346 },
+        params: [["id", "caminho", "número", "Id do perfil"], ["jogoId", "caminho", "número", "Id do jogo"]], resp: [[200, "Perfil atualizado"], [404, "Perfil ou jogo não encontrado"]] },
+      { g: "Perfis", m: "DELETE", c: "/perf/{id}/jogos/{jogoId}", r: "Atalho: remove um jogo do perfil", extra: true, ex: { id: 1, jogoId: 7346 },
+        params: [["id", "caminho", "número", "Id do perfil"], ["jogoId", "caminho", "número", "Id do jogo"]], resp: [[204, "Removido"], [404, "Não estava salvo"]] },
+
+      { g: "Extras", m: "GET", c: "/generos", r: "Lista os gêneros", extra: true, resp: [[200, "Lista de gêneros"]] },
+      { g: "Extras", m: "GET", c: "/estatisticas", r: "Totais do catálogo", extra: true, resp: [[200, "total_jogos, total_categorias, total_perfis, por_familia"]] },
+      { g: "Extras", m: "GET", c: "/fontes", r: "Origem dos dados, licenças e arquivos do dataset", extra: true, resp: [[200, "Fontes, licenças e tamanhos dos arquivos"]] },
+      { g: "Extras", m: "GET", c: "/dataset/{arquivo}", r: "Baixa um dos CSVs do dataset", extra: true, ex: { arquivo: "genres.csv" },
+        params: [["arquivo", "caminho", "texto", "Ex.: genres.csv, platforms.csv"]], resp: [[200, "O arquivo CSV"], [404, "Arquivo não existe"]] },
+    ];
+
+    const esc2 = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const realce = (json) => esc2(json).replace(/("(\\u[\da-fA-F]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (m) => {
+      let k = "json-n";
+      if (/^"/.test(m)) k = /:$/.test(m) ? "json-k" : "json-s"; else if (/true|false|null/.test(m)) k = "json-b";
+      return `<span class="${k}">${m}</span>`;
+    });
+
+    // ---------- Montagem da página ----------
+    let grupoAtual = "Todos";
+    const grupos = ["Todos", ...new Set(EP.map((e) => e.g))];
+    function desenharGrupos() {
+      document.getElementById("grupos").innerHTML = grupos.map((g) => `<button class="${g === grupoAtual ? "ativa" : ""}" data-g="${g}">${g}${g === "Todos" ? ` (${EP.length})` : ` (${EP.filter((e) => e.g === g).length})`}</button>`).join("");
+      document.querySelectorAll("#grupos button").forEach((b) => (b.onclick = () => { grupoAtual = b.dataset.g; desenharGrupos(); desenharEndpoints(); }));
+    }
+
+    function desenharEndpoints() {
+      const lista = EP.map((e, i) => [e, i]).filter(([e]) => grupoAtual === "Todos" || e.g === grupoAtual);
+      document.getElementById("endpoints").innerHTML = lista.map(([e, i]) => {
+        const campos = (e.c.match(/\{(\w+)\}/g) || []).map((p) => p.slice(1, -1));
+        const params = e.params ? `<h4>Parâmetros</h4><div class="tabela-rolagem"><table><thead><tr><th>Nome</th><th>Onde</th><th>Tipo</th><th>Descrição</th></tr></thead><tbody>
+          ${e.params.map(([n, o, t, d]) => `<tr><td><code>${esc2(n)}</code></td><td>${o}</td><td>${esc2(t)}</td><td>${esc2(d)}</td></tr>`).join("")}</tbody></table></div>` : "";
+        return `<details class="ep m-${e.m}" data-i="${i}">
+          <summary><span class="badge-metodo">${e.m}</span><span class="caminho">${e.c}</span><span class="resumo">${esc2(e.r)}</span>
+            ${e.extra ? '<span class="extra" title="Não faz parte da especificação do trabalho; usado pelo site">extra</span>' : ""}
+            <span class="codigos">${e.resp.map(([c]) => `<span class="cod ${c < 300 ? "c2" : "c4"}">${c}</span>`).join("")}</span></summary>
+          <div class="ep-corpo">
+            ${params}
+            <div><h4>Respostas</h4><div class="codigos-lista">${e.resp.map(([c, t]) => `<div><span class="cod ${c < 300 ? "c2" : "c4"}">${c}</span> ${esc2(t)}</div>`).join("")}</div></div>
+            <div><h4>Testar</h4><div class="testador">
+              ${e.m !== "GET" ? '<p class="meta">⚠️ Esta chamada altera os dados de verdade (o catálogo desta máquina).</p>' : ""}
+              <div class="linha">${campos.map((c) => `<label>${c}<input data-p="${c}" value="${(e.ex && e.ex[c]) ?? ""}" size="10"></label>`).join("")}
+                ${e.m === "GET" && e.q !== undefined ? `<label style="flex:1">query string<input data-q value="${esc2(e.q)}" placeholder="ex.: q=mario&por_pagina=2"></label>` : ""}</div>
+              ${e.corpo ? `<label>corpo (JSON)<textarea data-b rows="${e.corpo.split("\n").length + 1}">${esc2(e.corpo)}</textarea></label>` : ""}
+              <div class="linha"><button class="principal pequeno" data-enviar>▶ Enviar</button><button class="pequeno" data-curl>Copiar curl</button></div>
+              <div class="resposta"><div class="barra"><span class="status"></span><span class="tempo meta"></span></div><pre></pre></div>
+            </div></div>
+          </div></details>`;
+      }).join("") || '<p class="vazio">Nada aqui.</p>';
+      document.querySelectorAll(".ep").forEach(ligar);
+    }
+
+    function montarRequisicao(det) {
+      const e = EP[det.dataset.i];
+      let url = e.c;
+      det.querySelectorAll("[data-p]").forEach((i) => (url = url.replace(`{${i.dataset.p}}`, encodeURIComponent(i.value.trim()))));
+      const q = det.querySelector("[data-q]")?.value.trim();
+      if (q) url += "?" + q;
+      const corpo = det.querySelector("[data-b]")?.value.trim();
+      return { metodo: e.m, url, corpo: corpo || null };
+    }
+
+    function ligar(det) {
+      det.querySelector("[data-enviar]").onclick = async () => {
+        const { metodo, url, corpo } = montarRequisicao(det);
+        const caixa = det.querySelector(".resposta"), pre = caixa.querySelector("pre"), st = caixa.querySelector(".status");
+        caixa.classList.add("ativa"); pre.textContent = "Enviando…";
+        const t0 = performance.now();
+        try {
+          const res = await fetch(url.replace(/^\//, ""), { method: metodo, headers: { "Content-Type": "application/json" }, body: corpo && metodo !== "GET" ? corpo : undefined });
+          const txt = await res.text();
+          st.textContent = `${res.status} ${res.statusText}`; st.className = "status " + (res.ok ? "ok" : "ruim");
+          caixa.querySelector(".tempo").textContent = `${Math.round(performance.now() - t0)} ms` + (res.headers.get("Location") ? ` · Location: ${res.headers.get("Location")}` : "");
+          let saida = txt || "(sem corpo na resposta)";
+          try { saida = JSON.stringify(JSON.parse(txt), null, 2); pre.innerHTML = realce(saida.length > 6000 ? saida.slice(0, 6000) + "\n… (cortado)" : saida); }
+          catch { pre.textContent = saida.slice(0, 6000); }
+        } catch (err) { st.textContent = "Erro de rede"; st.className = "status ruim"; pre.textContent = String(err); }
+      };
+      det.querySelector("[data-curl]").onclick = (ev) => {
+        const { metodo, url, corpo } = montarRequisicao(det);
+        let cmd = `curl -X ${metodo} "${BASE}${url}"`;
+        if (corpo && metodo !== "GET") cmd += ` -H "Content-Type: application/json" -d '${corpo.replace(/\n\s*/g, " ")}'`;
+        navigator.clipboard?.writeText(cmd); ev.target.textContent = "Copiado ✓"; setTimeout(() => (ev.target.textContent = "Copiar curl"), 1500);
+      };
+    }
+
+    desenharGrupos(); desenharEndpoints();
+    document.getElementById("modelo").innerHTML = realce(JSON.stringify({
+      id: 7346, nome: "The Legend of Zelda: Breath of the Wild", nome_pt: null, data_lancamento: "2017-03-03", ano: 2017, nota: 90.2,
+      resumo: "…", desenvolvedora: "Nintendo EPD", imagem_url: "https://…/capa.jpg", fontes: "IGDB; Wikidata",
+      categorias: [{ id: 130, nome: "Nintendo Switch", familia: "Nintendo" }], generos: [{ id: 31, nome: "Aventura" }],
+      videos: [{ youtube_id: "…", titulo: "Trailer", url: "https://www.youtube.com/watch?v=…" }],
+    }, null, 2));
+  </script>
+</body>
+</html>

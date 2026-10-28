@@ -1,0 +1,10 @@
+services:
+  catalogo-jogos:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - dados-catalogo:/data   # guarda o banco (jogos cadastrados e perfis) entre reinícios
+
+volumes:
+  dados-catalogo:
